@@ -1,0 +1,25 @@
+# Meson options
+
+option('docdir',
+  type: 'string',
+  value: 'share/doc/eini',
+  description: 'Where to install additional documentation'
+)
+
+option('docs',
+  type: 'feature',
+  value: 'auto',
+  description: 'Install additional documentation'
+)
+
+option('libbsd',
+  type: 'feature',
+  value: 'disabled',
+  description: 'Use libbsd-overlay'
+)
+
+option('tests',
+  type: 'feature',
+  value: 'auto',
+  description: 'Enable unit tests'
+)

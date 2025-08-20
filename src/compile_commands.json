@@ -1,0 +1,14 @@
+[
+  {
+    "directory": "/home/plp/Documents/Development/C/eini/build",
+    "command": "ccache cc -Isrc/tests.p -Isrc -I../src -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -O0 -g -MD -MQ src/tests.p/eini.c.o -MF src/tests.p/eini.c.o.d -o src/tests.p/eini.c.o -c ../src/eini.c",
+    "file": "../src/eini.c",
+    "output": "src/tests.p/eini.c.o"
+  },
+  {
+    "directory": "/home/plp/Documents/Development/C/eini/build",
+    "command": "ccache cc -Isrc/tests.p -Isrc -I../src -fdiagnostics-color=always -D_FILE_OFFSET_BITS=64 -Wall -Winvalid-pch -O0 -g -MD -MQ src/tests.p/tests.c.o -MF src/tests.p/tests.c.o.d -o src/tests.p/tests.c.o -c ../src/tests.c",
+    "file": "../src/tests.c",
+    "output": "src/tests.p/tests.c.o"
+  }
+]
