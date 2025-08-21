@@ -432,26 +432,34 @@ void eini(eini_handler_t hf, eini_error_t ef, const char *path) {
   while (!feof(fp)) {
     // Read next line into `ln`, and parse it into `lne`
     if (NULL == fgets(ln, EINI_LONG, fp)) {
-      wcslcpy(errmsg, L"fgets() failed", EINI_LONG);
-      call_ef_and_return;
+      if (feof(fp))
+        break;
+      else {
+        wcslcpy(errmsg, L"Unable to read line", EINI_LONG);
+        printf("%s", strerror(errno));
+        call_ef_and_return;
+      }
     }
     i++;
     lne = eini_parse(ln);
 
-    // Call `hf()` or `ef()`, depending on what we got
+    // Perform different actions, epending on what we got
     switch (lne.type) {
     case EINI_INCLUDE: {
-      char ipath[EINI_LONG]; // include file path
-      FILE *ifp;             // include file pointer
+      // Call `eini()` to parse included .ini file
+      char ipath[EINI_LONG]; // included file path
+      FILE *ifp;             // included file pointer
       populate_ipath;
       eini(hf, ef, ipath);
       break;
     }
     case EINI_SECTION: {
+      // Populate `sec`
       wcslcpy(sec, lne.value, EINI_SHORT);
       break;
     }
     case EINI_VALUE: {
+      // Call `hf()` (but if `sec` hasn't been populated yet, call `ef()`)
       if (0 == wcslen(sec)) {
         swprintf(errmsg, EINI_LONG, L"Option '%ls' does not have a section",
                  lne.key);
@@ -461,6 +469,7 @@ void eini(eini_handler_t hf, eini_error_t ef, const char *path) {
       break;
     }
     case EINI_ERROR: {
+      // Call `ef()`
       wcslcpy(errmsg, lne.value, EINI_LONG);
       call_ef_and_return;
       break;

@@ -6,8 +6,11 @@ project('eini', 'c',
   version: '1.0.0'
 )
 
-# Executable
+# eINI sources
 subdir('src')
+
+# Simple usage example
+subdir('examples/simple')
 
 # README.md
 if get_option('docs').enabled() or get_option('docs').auto()

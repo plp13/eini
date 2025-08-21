@@ -1,4 +1,4 @@
-# Executable build file
+# Build file for eINI sources
 
 # Compiler
 cc = meson.get_compiler('c')
