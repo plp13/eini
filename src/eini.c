@@ -1,4 +1,4 @@
-// Extended INI file parsing (implementation)
+// eINI (implementation)
 
 #include <alloca.h>
 #include <errno.h>
@@ -34,8 +34,8 @@ regex_t eini_re_include, eini_re_section, eini_re_value;
 // Helper functions and macros
 //
 
-// Helper of `eini_parse()`. Set the `type`, `key`, and `value` fields of `ret`
-// to `mytype`, `mykey`, and `myvalue` respectively.
+// Helper of `wsrc_strip` and `eini_parse()`. Set the `type`, `key`, and `value`
+// fields of `ret` to `mytype`, `mykey`, and `myvalue` respectively.
 #define set_ret(mytype, mykey, myvalue)                                        \
   ret.type = mytype;                                                           \
   if (NULL == mykey)                                                           \
@@ -99,7 +99,8 @@ regex_t eini_re_include, eini_re_section, eini_re_value;
     }                                                                          \
   }
 
-// Helper of `eini()`. Call `ef(errmsg, path, i)`, wind down, and return.
+// Helper of `populate_ipath` and `eini()`. Call `ef(errmsg, path, i)`, wind
+// down, and return.
 #define call_ef_and_return                                                     \
   ef(errmsg, path, i);                                                         \
   if (NULL != fp)                                                              \
@@ -123,7 +124,6 @@ regex_t eini_re_include, eini_re_section, eini_re_value;
       wcslcpy(errmsg, L"wcstombs() failed", EINI_LONG);                        \
       call_ef_and_return;                                                      \
     }                                                                          \
-    strlcpy(ipath, path, EINI_LONG);                                           \
     strlcpy(ipath, dirname(ipath), EINI_LONG);                                 \
     strlcat(ipath, "/", EINI_LONG);                                            \
     strlcat(ipath, apath, EINI_LONG);                                          \
@@ -136,15 +136,8 @@ regex_t eini_re_include, eini_re_section, eini_re_value;
   }                                                                            \
   fclose(ifp);
 
-void serror(wchar_t *dst, const wchar_t *s) {
-  if (NULL != s && L'\0' != s[0])
-    swprintf(dst, EINI_SHORT, L"%ls: %s", s, strerror(errno));
-  else
-    swprintf(dst, EINI_SHORT, L"%s", strerror(errno));
-}
-
 // Helper of `wsrc_strip()` and `decomment()`, i.e. `eini_parse()` ultimately.
-// Test whether the character at `src[pos]` is escaped
+// Test whether the character in `src[pos]` is escaped.
 bool wescaped(wchar_t *src, unsigned pos) {
   int c = 0;   // number of '\'s before `pos`
   int i = pos; // iterator
@@ -239,11 +232,10 @@ unsigned wmargend(const wchar_t *src, const wchar_t *extras) {
   return 0;
 }
 
-// Helper of `wsrc_strip()` and `eini_parse()`. Trim all characters at the end
-// of `trgt` that are either whitespace or one of the charactes in `extras`. (If
+// Helper of `wsrc_strip` and `eini_parse()`. Trim all characters at the end of
+// `trgt` that are either whitespace or one of the charactes in `extras`. (If
 // `extras` is NULL then it is ignored.) Trimming is done by inserting 0 or more
 // NULL characters at the end of `trgt`. Return the new length of `trgt`.
-
 unsigned wmargtrim(wchar_t *trgt, const wchar_t *extras) {
   int i;      // iterator
   unsigned j; // iterator
@@ -280,20 +272,19 @@ unsigned wmargtrim(wchar_t *trgt, const wchar_t *extras) {
 
 // Helper of `eini_parse()`. Discard all comments in `src`.
 void decomment(wchar_t *src) {
-  unsigned i = 0;   // iterator
-  bool inq = false; // true if we are inside a quoted string
-  wchar_t qtype =
-      L'?'; // type of quotes used by the string we are in: `'` or `"`
+  unsigned i = 0;       // iterator
+  bool inq = false;     // true if `src[i]` is inside a quoted string
+  wchar_t qtype = L'?'; // quote type: `'` or `"`
 
   while (L'\0' != src[i]) {
     if (inq) {
-      // we are inside a quoted string
+      // `src[i]` is inside a quoted string
       if (qtype == src[i] && !wescaped(src, i)) {
         // `src[i]` is an unescaped `"` or `'`, thus the quoted string ends
         inq = false;
       }
     } else {
-      // we are not inside a quoted string
+      // `src[i]` isn't inside a quoted string
       if (L';' == src[i]) {
         // `src[i]` is `;`, thus we have a comment to the end of line
         src[i] = L'\0';
@@ -373,6 +364,7 @@ eini_t eini_parse(char *src) {
   wcstombs(csrc, wsrc, EINI_LONG);
 
   loc = match(eini_re_include, csrc);
+
   if (0 == loc.beg && loc.end > loc.beg) {
     // Include directive
     wsrc = &wsrc[loc.end];
@@ -418,10 +410,10 @@ eini_t eini_parse(char *src) {
 }
 
 void eini(eini_handler_t hf, eini_error_t ef, const char *path) {
-  unsigned i = 0;                // current line number
-  FILE *fp = NULL;               // file pointer
-  char ln[EINI_LONG];            // current config line
-  eini_t lne;                    // current config line contents
+  unsigned i = 0;                // current line number in .ini file
+  FILE *fp = NULL;               // file pointer for .ini file
+  char ln[EINI_LONG];            // current .ini file line text
+  eini_t lne;                    // current .ini file line parsed contents
   wchar_t sec[EINI_SHORT] = L""; // current section
   wchar_t errmsg[EINI_LONG];     // error message
 
@@ -438,6 +430,7 @@ void eini(eini_handler_t hf, eini_error_t ef, const char *path) {
   rewind(fp);
 
   while (!feof(fp)) {
+    // Read next line into `ln`, and parse it into `lne`
     if (NULL == fgets(ln, EINI_LONG, fp)) {
       wcslcpy(errmsg, L"fgets() failed", EINI_LONG);
       call_ef_and_return;
@@ -445,6 +438,7 @@ void eini(eini_handler_t hf, eini_error_t ef, const char *path) {
     i++;
     lne = eini_parse(ln);
 
+    // Call `hf()` or `ef()`, depending on what we got
     switch (lne.type) {
     case EINI_INCLUDE: {
       char ipath[EINI_LONG]; // include file path
