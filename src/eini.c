@@ -119,14 +119,15 @@ regex_t eini_re_include, eini_re_section, eini_re_value;
     }                                                                          \
   } else {                                                                     \
     /* Relative path */                                                        \
-    char apath[EINI_LONG];                                                     \
-    if (-1 == wcstombs(apath, lne.value, EINI_LONG)) {                         \
+    char svalue[EINI_LONG];                                                    \
+    if (-1 == wcstombs(svalue, lne.value, EINI_LONG)) {                        \
       wcslcpy(errmsg, L"wcstombs() failed", EINI_LONG);                        \
       call_ef_and_return;                                                      \
     }                                                                          \
+    strlcpy(ipath, path, EINI_LONG);                                           \
     strlcpy(ipath, dirname(ipath), EINI_LONG);                                 \
     strlcat(ipath, "/", EINI_LONG);                                            \
-    strlcat(ipath, apath, EINI_LONG);                                          \
+    strlcat(ipath, svalue, EINI_LONG);                                         \
   }                                                                            \
   /* Error out if file was not found */                                        \
   ifp = fopen(ipath, "r");                                                     \
