@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 
 The example program can now be compiled and executed:
 
-```sh
+```
 $ gcc -o example example.c eini.c
 $ ./example config.ini
 Line 4 of config.ini: Got colors.foreground='red'
